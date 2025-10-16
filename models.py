@@ -53,3 +53,6 @@ class Produto(Base):
         SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, Future=True)
         
         return SessionLocal()
+    
+    
+    teste bem safado do antonio pinto de 5 cm
