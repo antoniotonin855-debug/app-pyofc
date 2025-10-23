@@ -1,55 +1,77 @@
 # models.py
+# MIKAEL RODRIGUES NAVARROS
+# SESI UNIVERSITARIO
+
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, DateTime, Numeric, CheckConstraint
+    Column, Integer, String, ForeignKey, DateTime, Enum, Boolean, create_engine
 )
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 Base = declarative_base()
 
-# ===== MODELS =====
-class Cliente(Base):
-    __tablename__ = "clientes"
+# ===== MODELOS PRINCIPAIS =====
+
+class Chamado(Base):
+    __tablename__ = "chamados"
+
+    id = Column(Integer, primary_key=True)
+    categoria = Column(String(100), nullable=False)  # Ex: Sem Internet, VLAN, Wi-Fi...
+    prioridade = Column(String(50), nullable=False)  # Ex: Alta, Média, Baixa
+    status = Column(String(50), default="Aberto")    # Ex: Aberto, Fechado, Em atendimento
+    descricao = Column(String(255))
+    data_abertura = Column(DateTime, default=datetime.now)
+    data_fechamento = Column(DateTime, nullable=True)
+
+    tecnico_id = Column(Integer, ForeignKey("tecnicos.id"))
+    tecnico = relationship("Tecnico", back_populates="chamados")
+
+    def __repr__(self):
+        return f"<Chamado id={self.id} categoria={self.categoria} status={self.status}>"
+
+class Tecnico(Base):
+    __tablename__ = "tecnicos"
 
     id = Column(Integer, primary_key=True)
     nome = Column(String(120), nullable=False)
     email = Column(String(120), nullable=False, unique=True)
-    telefone = Column(String(20))
 
-    pedidos = relationship("Pedido", back_populates="cliente", cascade="all, delete-orphan")
+    chamados = relationship("Chamado", back_populates="tecnico")
 
     def __repr__(self):
-        return f"<Cliente id={self.id} nome={self.nome!r} email={self.email!r}>"
+        return f"<Tecnico id={self.id} nome={self.nome}>"
 
-class Produto(Base):
-    __tablename__ = "produtos"
+class IP(Base):
+    __tablename__ = "ips"
 
     id = Column(Integer, primary_key=True)
-    titulo = Column(String(160), nullable=False)
-    plataforma = Column(String(40), nullable=False)
-    preco = Column(Numeric(10, 2), nullable=False)
-    estoque = Column(Integer, nullable=False, default=0)
-
-    __table_args__ = (
-        CheckConstraint("preco >= 0", name="ck_produto_preco"),
-        CheckConstraint("estoque >= 0", name="ck_produto_estoque"),
-    )
-
-    itens = relationship("ItemPedido", back_populates="produto")
+    endereco = Column(String(15), nullable=False, unique=True)
+    mac = Column(String(17), nullable=True)
+    reservado = Column(Boolean, default=False)
+    status = Column(String(20), default="Livre")  # Livre / Alocado
 
     def __repr__(self):
-        return f"<Produto id={self.id} titulo={self.titulo!r} plataforma={self.plataforma!r} preco={self.preco}>"
-    
-    # ====== CONEXÕES E SESSÕES =========
-    
-    def get_engine(deb_url: str = "sqlite:///loja_jogos.db"):
-        return create_engine(db_url, echo=False, future=True)
-    
-    def create_session(db_url: str = "sqlite:///loja_jogos.db"):
-        engine = get_engine(db_url)
-        Base.metadata.create_all(engine)
-        SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, Future=True)
-        
-        return SessionLocal()
+        return f"<IP {self.endereco} ({self.status})>"
+
+class Ativo(Base):
+    __tablename__ = "ativos"
+
+    id = Column(Integer, primary_key=True)
+    nome = Column(String(120), nullable=False)
+    tipo = Column(String(50))  # Ex: Computador, Notebook, Switch, Roteador
+    ip_id = Column(Integer, ForeignKey("ips.id"))
+    ip = relationship("IP")
+
+    def __repr__(self):
+        return f"<Ativo {self.nome} ({self.tipo})>"
+
+# ===== CONEXÃO E SESSÃO =====
+
+def get_engine(db_url="sqlite:///gestao_ti.db"):
+    return create_engine(db_url, echo=False, future=True)
+
+def create_session(db_url="sqlite:///gestao_ti.db"):
+    engine = get_engine(db_url)
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+    return SessionLocal()

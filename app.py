@@ -1,64 +1,105 @@
-#app.py
-from decimal import Decimal 
-from models import create_session, Cliente, Produto, Pedido, ItemPedido
+# app.py
+# Sistema de Gestão de TI
+# MIKAEL RODRIGUES NAVARROS
+# SESI UNIVERSITARIO
 
-DB_URL = "sqlite:///loja_jogos.db"
-session = create_session(DB_URL)
+from models import create_session, Chamado, Tecnico, IP, Ativo
+from datetime import datetime
 
-def cadastrar_cliente():
-    nome = input("Nome do Cliente: ").strip()
-    email = input("Email do Cliente: ").strip()
-    telefone = input("Telefone do Cliente: ").strip() or None 
-    
-    cliente = Cliente(nome=nome, email=email, telefone=telefone)
-    session.add(cliente)
+session = create_session()
+
+# === CADASTROS ===
+
+def cadastrar_tecnico():
+    nome = input("Nome do técnico: ").strip()
+    email = input("Email do técnico: ").strip()
+    tecnico = Tecnico(nome=nome, email=email)
+    session.add(tecnico)
     session.commit()
-    print(f"Cliente Cadastrado: {cliente}")
-    
-def cadastrar_produto():
-    nome_produto = input("Nome do produto: ").string()
-    preco = Decimal(input("Preço do Produto (ex: 199.99): ")).replace(",", ".")
-    estoque = int(input("Estoque: "))
-    
-    produto = Produto(nome_produto=nome_produto, preco=preco, estoque=estoque)
-    session.add(produto)
+    print("Técnico cadastrado com sucesso!")
+
+def cadastrar_chamado():
+    categoria = input("Categoria (Sem Internet, VLAN, Wi-Fi...): ").strip()
+    prioridade = input("Prioridade (Alta, Média, Baixa): ").strip()
+    descricao = input("Descrição do problema: ").strip()
+    chamado = Chamado(categoria=categoria, prioridade=prioridade, descricao=descricao)
+    session.add(chamado)
     session.commit()
-    print(f"Produto Cadastrado: {nome_produto}")
-    
-def criar_pedido():
-    cliente_id = int(input("Digite o ID do cliente: "))
-    pedido = Pedido(cliente_id=cliente_id)
-    session.add(pedido)
-    session.flush() # garante o ID do pedido antes de inserir itens
-    
-    print("Adicione itens (Enter em produtos_ID para finalizar). ")
+    print(f"Chamado aberto: {chamado}")
+
+def listar_chamados():
+    chamados = session.query(Chamado).all()
+    for c in chamados:
+        print(f"[{c.id}] {c.categoria} - {c.status} - {c.prioridade}")
+
+def atualizar_status():
+    listar_chamados()
+    id_chamado = int(input("Digite o ID do chamado: "))
+    novo_status = input("Novo status (Aberto, Em atendimento, Fechado): ").strip()
+    chamado = session.get(Chamado, id_chamado)
+    if chamado:
+        chamado.status = novo_status
+        if novo_status.lower() == "fechado":
+            chamado.data_fechamento = datetime.now()
+        session.commit()
+        print("Status atualizado com sucesso!")
+    else:
+        print("Chamado não encontrado.")
+
+def cadastrar_ip():
+    endereco = input("Endereço IP: ").strip()
+    mac = input("MAC (opcional): ").strip() or None
+    reservado = input("Está reservado? (s/n): ").strip().lower() == "s"
+    ip = IP(endereco=endereco, mac=mac, reservado=reservado, status="Alocado" if reservado else "Livre")
+    session.add(ip)
+    session.commit()
+    print("IP cadastrado!")
+
+def cadastrar_ativo():
+    nome = input("Nome do ativo: ").strip()
+    tipo = input("Tipo (Computador, Notebook, Switch, Roteador): ").strip()
+    listar_ips()
+    ip_id = int(input("ID do IP a vincular: "))
+    ativo = Ativo(nome=nome, tipo=tipo, ip_id=ip_id)
+    session.add(ativo)
+    session.commit()
+    print("Ativo cadastrado!")
+
+def listar_ips():
+    ips = session.query(IP).all()
+    for i in ips:
+        print(f"[{i.id}] {i.endereco} - {i.status}")
+
+# === MENU PRINCIPAL ===
+def menu():
     while True:
-        val = input("Produto ID(Enter para sair): ").strip()
-        if not val:
+        print("""
+===== GESTÃO DE TI =====
+1. Cadastrar Técnico
+2. Abrir Chamado
+3. Listar Chamados
+4. Atualizar Status de Chamado
+5. Cadastrar IP
+6. Cadastrar Ativo
+0. Sair
+""")
+        opcao = input("Escolha uma opção: ").strip()
+        if opcao == "1":
+            cadastrar_tecnico()
+        elif opcao == "2":
+            cadastrar_chamado()
+        elif opcao == "3":
+            listar_chamados()
+        elif opcao == "4":
+            atualizar_status()
+        elif opcao == "5":
+            cadastrar_ip()
+        elif opcao == "6":
+            cadastrar_ativo()
+        elif opcao == "0":
             break
-        produto_id = int(val)
-        quantidade = int(input("Quantidade: "))
-        
-        # Buscar produto para pegar preço e validar o estoque
-        produto = session.get(Produto, produto_id)
-        if produto is None:
-            print("Produto não encontrado.")
-            continue
-        
-        if produto.estoque < quantidade:
-            print(f"Estoque insuficiente. Quantidade Disponível: {produto.estoque}")
-            
-        # Debita do estoque 
-        produto.estoque -= quantidade 
-        
-        item = ItemPedido(
-            pedido_id = pedido.id,
-            produto_id = produto_id,
-            quantidade = quantidade,
-            preco_unit = produto.preco 
-        )
-        session.add(item)
-    
-    session.commit()
-    
-    
+        else:
+            print("Opção inválida!")
+
+if __name__ == "__main__":
+    menu()
