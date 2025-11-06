@@ -1,6 +1,5 @@
 # models.py
-# MIKAEL RODRIGUES NAVARROS
-# SESI UNIVERSITARIO
+# ANTONIO FERREIRA TAVARES
 
 from datetime import datetime
 from sqlalchemy import (
