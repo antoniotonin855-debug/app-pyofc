@@ -7,7 +7,7 @@ from datetime import datetime
 
 session = create_session()
 
-# === CADASTROS ===
+#cadastro
 
 def cadastrar_tecnico():
     nome = input("Nome do técnico: ").strip()
@@ -69,7 +69,7 @@ def listar_ips():
     for i in ips:
         print(f"[{i.id}] {i.endereco} - {i.status}")
 
-# === MENU PRINCIPAL ===
+#menu principal
 def menu():
     while True:
         print("""
