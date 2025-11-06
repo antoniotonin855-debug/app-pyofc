@@ -1,7 +1,6 @@
 # app.py
 # Sistema de Gestão de TI
-# MIKAEL RODRIGUES NAVARROS
-# SESI UNIVERSITARIO
+# ANTONIO FERREIRA TAVARES
 
 from models import create_session, Chamado, Tecnico, IP, Ativo
 from datetime import datetime
